@@ -11,8 +11,9 @@ import re
 import random
 import requests
 import zlib
+import datetime
 
-ALTEON = "192.168.180.61"
+ALTEON = ['192.168.180.61', '192.168.180.62', '192.168.180.63', '192.168.180.64']
 USER = "admin"
 PASSWORD = "admin"
 myAuth=requests.auth.HTTPBasicAuth(USER, PASSWORD)
@@ -35,12 +36,17 @@ nameInterface = ""
 def getCfgAlteon():
     global ALTEON, USER, PASSWORD, myAuth, flagDebug
     myAuth=requests.auth.HTTPBasicAuth(USER, PASSWORD)
-    reqSTR =  "https://"+ALTEON+"/config/getcfg"
-    requests.packages.urllib3.disable_warnings()
-    r = requests.get(reqSTR, auth=myAuth, verify=False)
-    rr = zlib.decompress(r.content, zlib.MAX_WBITS|32)
-    print "Config Alteon: \n " + rr
-    
+    for sAlteon in ALTEON:
+        if flagDebug > 1: print "Alteon Ip address: ", sAlteon
+        reqSTR =  "https://"+sAlteon+"/config/getcfg"
+        requests.packages.urllib3.disable_warnings()
+        r = requests.get(reqSTR, auth=myAuth, verify=False)
+        rr = zlib.decompress(r.content, zlib.MAX_WBITS|32)
+        year, month, day, hour, minn, sec = getDate()
+        fileName = '-'.join(["Alteon", sAlteon, "config", year, month, day, hour, minn, sec + ".txt"])
+        if flagDebug > 1: print " Filename cfg: "+fileName
+        writeFile(rr, fileName)
+            
 def cmdArgsParser():
     global fileName, keyPreShare, nameInterface, flagDebug, flagFullMesh, flagL2vpn
     if flagDebug > 0: print "Analyze options ... "
@@ -54,6 +60,37 @@ def cmdArgsParser():
     flagDebug = 2
     return parser.parse_args()
 
+def getDate():
+    '''
+    This function returns a tuple of the year, month and day.
+    '''
+    #Get Date
+    now = datetime.datetime.now()
+    day = str(now.day)
+    month = str(now.month)
+    year = str(now.year)
+    hour = str(now.hour)
+    minn = str(now.minute)
+    sec = str(now.second)
+    
+    
+    #Prepend '0' to day and month if only a single digit (better for alpha sorting)
+    if len(day) == 1:
+        day = '0' + day
+    if len(month) == 1:
+        month = '0' + month
+
+    return year, month, day, hour, minn, sec
+
+def writeFile(raw, filename):
+    '''
+    This function simply write the contents of the "raw" variable to a 
+    file with the name passed to the function.  The file suffix is .txt by
+    default unless a different suffix is passed in.
+    '''
+    newfile = open(filename, 'wb')
+    newfile.write(raw)
+    newfile.close()
 
 def main():
     global flagDebug
