@@ -21,7 +21,7 @@ myAuth = requests.auth.HTTPBasicAuth(altUser, altPass)
 description = "alteon: Get and Set Information from Alteon"
 epilog = "ciscoblog.ru"
 
-flagDebug = int()
+flagDebug = 1
 flagReset = int()
 paramListAlteon = list()
 captureDo = str()
@@ -35,7 +35,7 @@ def getCfgAlteon():
     global flagDebug
 
     for sAlteon in listAlteon:
-        writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 1)
         reqUrl = "https://"+sAlteon+"/config/getcfg"
         r = getRequests(reqUrl, 1, "")
         if(r):
@@ -52,7 +52,7 @@ def rstAlteon():
     global flagDebug, flagReset
 
     for sAlteon in listAlteon:
-        writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 1)
         reqUrl = "https://"+sAlteon+"/config"
         getRequests(reqUrl, 2, '{"agReset":"2"}')
 
@@ -61,7 +61,7 @@ def shtAlteon():
     global flagDebug, flagReset
 
     for sAlteon in listAlteon:
-        writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 1)
         reqUrl = "https://"+sAlteon+"/config"
         getRequests(reqUrl, 2, '{"agShutdown":"2"}')
 
@@ -70,7 +70,7 @@ def saveConfig():
     global flagDebug, flagReset
 
     for sAlteon in listAlteon:
-        writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 1)
         reqUrl = "https://"+sAlteon+"/config?action=save"
         getRequests(reqUrl, 2, '')
 
@@ -79,7 +79,7 @@ def applyConfig():
     global flagDebug, flagReset
 
     for sAlteon in listAlteon:
-        writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 1)
         reqUrl = "https://"+sAlteon+"/config?action=apply"
         getRequests(reqUrl, 2, '')
 
@@ -91,7 +91,7 @@ def capConfig():
         writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
         reqUrl = "https://" + sAlteon + "/config/pktcapture?cmd=" + captureDo
         r = getRequests(reqUrl, 1, '')
-        print "Respond: " + r.content
+        print "Respond Text: " + r.content
 
 
 def exportCapture():
@@ -101,6 +101,21 @@ def exportCapture():
         writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
         writeDebugMsg("Try to export capture file ... ", 2)
         reqUrl = "https://"+sAlteon+"/config/getcapturefile"
+        r = getRequests(reqUrl, 1, "")
+        if(r):
+            tar = tarfile.open(fileobj=StringIO(r.content), mode="r:gz")
+            writeDebugMsg(tar.list(), 1)
+            tar.extractall()
+            tar.close()
+
+
+def getLogFile():
+    global flagDebug
+
+    for sAlteon in listAlteon:
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+        writeDebugMsg("Try to get log file ... ", 2)
+        reqUrl = "https://"+sAlteon+"/config/getapplog"
         r = getRequests(reqUrl, 1, "")
         if(r):
             tar = tarfile.open(fileobj=StringIO(r.content), mode="r:gz")
@@ -139,17 +154,18 @@ def getRequests(pReqUrl, pMethod, pParam):
             print "Error : ", e
             return 0
         if(r.status_code == 200):
-            writeDebugMsg(" Status: " + str(r.status_code), 2)
+            writeDebugMsg("Respond Status: " + str(r.status_code), 2)
             count = 0
         else:
             count = count - 1
-            writeDebugMsg(" Status else: " + str(r.status_code), 2)
+            writeDebugMsg("Respond Status: " + str(r.status_code), 2)
     return r
 
 
 def cmdArgsParser():
     global fileName, keyPreShare, nameInterface, flagDebug, flagFullMesh, flagL2vpn
-    writeDebugMsg("Analyze options ... ", 1)
+
+    writeDebugMsg("Analyze command line options ... ", 1)
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument('-f', '--file', help='File name with source data', dest="fileName", default='sterra.conf')
     parser.add_argument('-cg', '--getcfg', help='Get Config From Alteon', action="store_true")
@@ -158,13 +174,12 @@ def cmdArgsParser():
     parser.add_argument('-cs', '--save', help='Save Config on Alteons', action="store_true")
     parser.add_argument('-ca', '--apply', help='Apply Config on Alteons', action="store_true")
     parser.add_argument('-cd', '--diff', help='Diff Config on Alteons', action="store_true")
-    parser.add_argument('-ce', '--capexport', help='Capture export from Alteons', action="store_true")
     parser.add_argument('-cp', '--capture', help='Capture Traffic Alteons', action="store",  dest="capture", default="")
-    parser.add_argument('-l', '--listalteon', help='List of Alteons', action="store",  dest="listalteon", default='')
-    parser.add_argument('-d', '--debug', help='Debug information view(default =1, 2- more verbose', dest="flagDebug", default=1)
-    parser.add_argument('-m', '--mesh', help='Enable Full Mesh(default = disable', action="store_true")
-    parser.add_argument('-l2', '--l2vpn', help='Generate configuration for L2 VPN', action="store_true")
-    flagDebug = 2
+    parser.add_argument('-ce', '--capexport', help='Capture export from Alteons', action="store_true")
+    parser.add_argument('-lg', '--getlog', help='Export Logging File from Alteons', action="store_true")
+    parser.add_argument('-l', '--listalteon', help='List of Alteons(ex:\'192.168.1.61,192.168.1.62\')', action="store",  dest="listalteon", default='')
+    parser.add_argument('-d', '--debug', help='Debug information view(default =1, 2- more verbose', dest="flagDebug", default=2)
+
     return parser.parse_args()
 
 
@@ -183,11 +198,11 @@ def getDate():
     if len(month) == 1:
         month = '0' + month
     if len(hour) == 1:
-        hour = '0' + month
+        hour = '0' + hour
     if len(minn) == 1:
-        minn = '0' + month
+        minn = '0' + minn
     if len(sec) == 1:
-        sec = '0' + month
+        sec = '0' + sec
     return year, month, day, hour, minn, sec
 
 
@@ -198,6 +213,7 @@ def writeFile(raw, filename):
 
 
 def writeDebugMsg(sMsg, levelDebug):
+    global flagDebug
     if flagDebug >= levelDebug:
         print sMsg
 
@@ -205,7 +221,7 @@ def writeDebugMsg(sMsg, levelDebug):
 def main():
     global flagDebug, flagReset, paramListAlteon, listAlteon, captureDo
     args = cmdArgsParser()
-    # flagDebug = int(args.flagDebug)
+    flagDebug = int(args.flagDebug)
     if(args.listalteon):
         paramListAlteon = list(args.listalteon.split(','))
         listAlteon = list(args.listalteon.split(','))
@@ -236,6 +252,9 @@ def main():
     if(args.capexport):
         writeDebugMsg("Export Capture file  ", 2)
         exportCapture()
+    if(args.getlog):
+        writeDebugMsg("Export Logging  ", 2)
+        getLogFile()
 
     sys.exit()
 
