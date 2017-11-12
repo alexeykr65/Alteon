@@ -133,9 +133,37 @@ def virtServerStatistic():
         for sDat in virtInfo:
             print ("%5s %16s %10s %10s %10s" % (sDat['ServIndex'], sDat['VirtPort'], sDat['CurrSessions'], sDat['TotalSessions'], sDat['HighestSessions']))
             intCount = intCount + 1
- #           print sDat['Index'], sDat['CurrSessions'], sDat['TotalSessions'], sDat['HighestSessions']
 
 
+def virtServiceServerStatistic():
+    global flagDebug, flagReset
+    writeDebugMsg("Get Real Server Statistic ... ", 1)
+    for sAlteon in listAlteon:
+        writeDebugMsg("Alteon Ip address: " + sAlteon, 1)
+        reqUrl = "https://" + sAlteon + "/config/SlbEnhStatVirtServiceTable"
+        virtSrvRes = getRequests(reqUrl, 1, '')
+        jsonVirtRes = json.loads(virtSrvRes.content)
+        virtInfo = jsonVirtRes['SlbEnhStatVirtServiceTable']
+        print ("%5s %10s %16s %10s %10s %10s" % ("VirtInd", "Service", "Server", "CurSess", "TotalSess", "HighSess"))
+        srvInfo = getServerTable(sAlteon)
+        for sDat in virtInfo:
+            if(sDat['CurrSessions'] > 0 or sDat['TotalSessions'] > 0 or sDat['HighestSessions'] > 0):
+                print ("%5s  %10s  %16s %10s %10s %10s" % (sDat['ServerIndex'], sDat['Index'], srvInfo[sDat['RealServerIndex']], sDat['CurrSessions'], sDat['TotalSessions'], sDat['HighestSessions']))
+
+
+def getServerTable(sAlteon):
+    global flagDebug, flagReset
+    srvInfo = dict()
+    writeDebugMsg("Get Real Server Information ... ", 2)
+    writeDebugMsg("Alteon Ip address: " + sAlteon, 2)
+    reqUrl = "https://" + sAlteon + "/config/SlbEnhRealServerInfoTable"
+    virtSrvRes = getRequests(reqUrl, 1, '')
+    jsonVirtRes = json.loads(virtSrvRes.content)
+    virtInfo = jsonVirtRes['SlbEnhRealServerInfoTable']
+    for sDat in virtInfo:
+#        print ("%5s %16s" % (sDat['Index'], sDat['IpAddr']))
+        srvInfo[sDat['Index']] = sDat['IpAddr']
+    return srvInfo
 
 
 def setTimeDate():
@@ -297,7 +325,8 @@ def cmdArgsParser():
     parser.add_argument('-st', '--settime', help='Set time and date on Alteons', action="store_true")
     parser.add_argument('-mr', '--realserver', help='Get Stat Real Server ', action="store_true")
     parser.add_argument('-mv', '--virtserver', help='Get Stat Virt Server ', action="store_true")
-    parser.add_argument('-d', '--debug', help='Debug information view(default =1, 2- more verbose', dest="flagDebug", default=2)
+    parser.add_argument('-ms', '--virtservice', help='Get Stat Virt Service with Server ', action="store_true")
+    parser.add_argument('-d', '--debug', help='Debug information view(default =1, 2- more verbose', dest="flagDebug", default=1)
 
     if(len(sys.argv) < 2):
         parser.print_help()
@@ -381,6 +410,8 @@ def main():
         realServerStatistic()
     if(args.virtserver):
         virtServerStatistic()
+    if(args.virtservice):
+            virtServiceServerStatistic()
 
     sys.exit()
 

@@ -57,6 +57,8 @@ def cmdArgsParser():
     writeDebugMsg("Analyze command line options ... ", 1)
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument('-l', '--listalteon', help='List of Alteons(ex:\'192.168.1.61,192.168.1.62\')', action="store", dest="listalteon")
+    parser.add_argument('-n', '--numrepeat', help='Number of repeat get', action="store", dest="numrepeat", default=10)
+    parser.add_argument('-s', '--numsec', help='Interval in sec', action="store", dest="numsec", default=0)
     # parser.add_argument('-f', '--file', help='File name with source data', dest="fileName", default='sterra.conf')
     #parser.add_argument('-cdir', '--cfgdir', help='Conf Alteon directory(default conf)', action="store", dest="cfgdir", default="conf")
     #parser.add_argument('-ec', '--exportcfg', help='Export Config From Alteon', action="store_true")
@@ -85,6 +87,8 @@ def main():
     global flagDebug, flagReset, paramListAlteon, listAlteon, captureDo, dirConfigFiles
     args = cmdArgsParser()
     flagDebug = int(args.flagDebug)
+    numRepeat = int(args.numrepeat)
+    numSec = int(args.numsec)
     if(args.listalteon):
         paramListAlteon = list(args.listalteon.split(','))
         listAlteon = list(args.listalteon.split(','))
@@ -92,10 +96,11 @@ def main():
 
     for sAlteon in listAlteon:
         reqUrl = "http://" + sAlteon
-        for x in range(10):
+        for x in range(numRepeat):
             writeDebugMsg("Ip address: " + sAlteon + "  Index : " + str(x), 1)
             getRequests(reqUrl)
-            time.sleep(1)
+            if(numSec > 0):
+                time.sleep(numSec)
 
     sys.exit()
 
