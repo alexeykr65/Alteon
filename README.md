@@ -9,7 +9,7 @@ alteon: Get and Set Information from Alteon
 
 optional arguments:
   -h, --help            show this help message and exit
-  -l LISTALTEON, --listalteon LISTALTEON
+    -l LISTALTEON, --listalteon LISTALTEON
                         List of Alteons(ex:'192.168.1.61,192.168.1.62')
   -cdir CFGDIR, --cfgdir CFGDIR
                         Conf Alteon directory(default conf)
